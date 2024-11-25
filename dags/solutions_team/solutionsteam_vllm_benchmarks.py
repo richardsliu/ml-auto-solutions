@@ -5,7 +5,7 @@ import enum
 from airflow import models
 from airflow.models.baseoperator import chain
 from dags import composer_env, test_owner
-from dags.vm_resource import AcceleratorType, GpuVersion, TpuVersion, Region, Zone, Project, V5_NETWORKS, V5E_SUBNETWORKS, V5P_SUBNETWORKS, BM_NETWORKS, A100_BM_SUBNETWORKS, ImageProject, ImageFamily, MachineVersion, RuntimeVersion
+from dags.vm_resource import AcceleratorType, GpuVersion, TpuVersion, Region, Zone, Project, V5_NETWORKS, V5E_SUBNETWORKS, V5P_SUBNETWORKS, BM_NETWORKS, A100_BM_SUBNETWORKS, V6E_GCE_NETWORK, V6E_GCE_SUBNETWORK, ImageProject, ImageFamily, MachineVersion, RuntimeVersion
 from dags.multipod.configs.common import SetupMode, Platform
 from dags.solutions_team.configs.vllm import vllm_benchmark_config
 
@@ -31,11 +31,12 @@ with models.DAG(
   test_models = {
       "llama3-8b": {
           "accelerator_specs": [
-              (
-                  AcceleratorType.GPU,
-                  (MachineVersion.A2_HIGHGPU_1G, GpuVersion.A100, 1),
-              ),
-              (AcceleratorType.TPU, (TpuVersion.V5E, 8)),
+              #(
+              #    AcceleratorType.GPU,
+              #    (MachineVersion.A2_HIGHGPU_1G, GpuVersion.A100, 1),
+              #),
+              #(AcceleratorType.TPU, (TpuVersion.V5E, 8)),
+              (AcceleratorType.TPU, (TpuVersion.TRILLIUM, 8)),
           ],
           # TODO: Support other backends
           "backend": ["vllm"],
@@ -73,12 +74,12 @@ with models.DAG(
           ]
 
           if accelerator_type == AcceleratorType.TPU:
-            project = Project.TPU_PROD_ENV_AUTOMATED
-            zone = Zone.US_EAST1_C
+            project = Project.TPU_PROD_ENV_LARGE_ADHOC  #Project.TPU_PROD_ENV_AUTOMATED
+            zone = Zone.US_CENTRAL2_B   #Zone.US_EAST1_C
             tpu_version, tpu_cores = accelerator_spec
-            runtime_version = RuntimeVersion.V2_ALPHA_TPUV5_LITE.value
-            network = V5_NETWORKS
-            subnetwork = V5E_SUBNETWORKS
+            runtime_version = RuntimeVersion.V2_ALPHA_TPUV6.value #RuntimeVersion.V2_ALPHA_TPUV5_LITE.value
+            network = V6E_GCE_NETWORK #V5_NETWORKS
+            subnetwork = V6E_GCE_SUBNETWORK #V5E_SUBNETWORKS
 
             vllm_benchmark_config.get_tpu_vllm_gce_config(
                 tpu_version=tpu_version,
@@ -88,7 +89,7 @@ with models.DAG(
                 runtime_version=runtime_version,
                 project=project,
                 time_out_in_min=120,
-                is_tpu_reserved=True,
+                is_tpu_reserved=False,
                 test_name=f"{test_name_prefix}-tpu-nightly-{model}-{backend}",
                 test_run_id=test_run_id,
                 network=network,

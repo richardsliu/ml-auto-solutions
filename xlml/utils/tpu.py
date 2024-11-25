@@ -169,6 +169,7 @@ def create_queued_resource(
         queued_resource_id=tpu_name,
         queued_resource=queued_resource,
     )
+    logging.info(f'QR: {queued_resource}')
     response = qr_operation.result()
     logging.info(f'Create QR response: {response}')
     # TODO(wcromar): do anything about failures
